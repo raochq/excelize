@@ -39,7 +39,13 @@ func parseFormatCommentsSet(formatSet string) (*formatComment, error) {
 func (f *File) GetComments() (comments map[string][]Comment) {
 	comments = map[string][]Comment{}
 	for n, path := range f.sheetMap {
-		if d := f.commentsReader("xl" + strings.TrimPrefix(f.getSheetComments(filepath.Base(path)), "..")); d != nil {
+		comPath := f.getSheetComments(filepath.Base(path))
+		if strings.HasPrefix(comPath, "/") {
+			comPath = strings.TrimPrefix(comPath, "/")
+		} else {
+			comPath = "xl" + strings.TrimPrefix(comPath, "..")
+		}
+		if d := f.commentsReader(comPath); d != nil {
 			sheetComments := []Comment{}
 			for _, comment := range d.CommentList.Comment {
 				sheetComment := Comment{}
