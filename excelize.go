@@ -401,3 +401,7 @@ func (f *File) setContentTypePartVBAProjectExtensions() {
 		})
 	}
 }
+
+func (f *File) WorkSheetReader(sheet string) (ws *xlsxWorksheet, err error) {
+	return f.workSheetReader(sheet)
+}
