@@ -85,6 +85,10 @@ func (f *File) getSheetComments(sheetFile string) string {
 	return ""
 }
 
+type CommentOption struct {
+	Author bool
+}
+
 // AddComment provides the method to add comment in a sheet by given worksheet
 // index, cell and format set (such as author and text). Note that the max
 // author length is 255 and the max text length is 32512. For example, add a
@@ -92,7 +96,7 @@ func (f *File) getSheetComments(sheetFile string) string {
 //
 //    err := f.AddComment("Sheet1", "A30", `{"author":"Excelize: ","text":"This is a comment."}`)
 //
-func (f *File) AddComment(sheet, cell, format string) error {
+func (f *File) AddComment(sheet, cell, format string, opts ...CommentOption) error {
 	formatSet, err := parseFormatCommentsSet(format)
 	if err != nil {
 		return err
@@ -133,7 +137,11 @@ func (f *File) AddComment(sheet, cell, format string) error {
 	if err != nil {
 		return err
 	}
-	f.addComment(commentsXML, cell, formatSet)
+	var opt CommentOption
+	for _, o := range opts {
+		opt = o
+	}
+	f.addComment(commentsXML, cell, formatSet, opt)
 	f.addContentTypePart(commentID, "comments")
 	return err
 }
@@ -240,7 +248,7 @@ func (f *File) addDrawingVML(commentID int, drawingVML, cell string, lineCount, 
 
 // addComment provides a function to create chart as xl/comments%d.xml by
 // given cell and format sets.
-func (f *File) addComment(commentsXML, cell string, formatSet *formatComment) {
+func (f *File) addComment(commentsXML, cell string, formatSet *formatComment, opt CommentOption) {
 	a := formatSet.Author
 	t := formatSet.Text
 	if len(a) > 255 {
@@ -263,34 +271,37 @@ func (f *File) addComment(commentsXML, cell string, formatSet *formatComment) {
 	cmt := xlsxComment{
 		Ref:      cell,
 		AuthorID: authorID,
-		Text: xlsxText{
-			R: []xlsxR{
-				{
-					RPr: &xlsxRPr{
-						B:  &bold,
-						Sz: &attrValFloat{Val: float64Ptr(9)},
-						Color: &xlsxColor{
-							Indexed: 81,
-						},
-						RFont:  &attrValString{Val: stringPtr(defaultFont)},
-						Family: &attrValInt{Val: intPtr(2)},
-					},
-					T: &xlsxT{Val: a},
-				},
-				{
-					RPr: &xlsxRPr{
-						Sz: &attrValFloat{Val: float64Ptr(9)},
-						Color: &xlsxColor{
-							Indexed: 81,
-						},
-						RFont:  &attrValString{Val: stringPtr(defaultFont)},
-						Family: &attrValInt{Val: intPtr(2)},
-					},
-					T: &xlsxT{Val: t},
-				},
-			},
-		},
+		Text:     xlsxText{},
 	}
+
+	if opt.Author {
+		cmt.Text.R = append(cmt.Text.R, xlsxR{
+			RPr: &xlsxRPr{
+				B:  &bold,
+				Sz: &attrValFloat{Val: float64Ptr(9)},
+				Color: &xlsxColor{
+					Indexed: 81,
+				},
+				RFont:  &attrValString{Val: stringPtr(defaultFont)},
+				Family: &attrValInt{Val: intPtr(2)},
+			},
+			T: &xlsxT{Val: a + ":"},
+		})
+	}
+	cmt.Text.R = append(cmt.Text.R, xlsxR{
+		RPr: &xlsxRPr{
+			Sz: &attrValFloat{Val: float64Ptr(9)},
+			Color: &xlsxColor{
+				Indexed: 81,
+			},
+			RFont:  &attrValString{Val: stringPtr(defaultFont)},
+			Family: &attrValInt{Val: intPtr(2)},
+		},
+		T: &xlsxT{Val: t, Space: xml.Attr{
+			Name:  xml.Name{Space: NameSpaceXML, Local: "space"},
+			Value: "preserve"},
+		},
+	})
 	comments.CommentList.Comment = append(comments.CommentList.Comment, cmt)
 	f.Comments[commentsXML] = comments
 }
