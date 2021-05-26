@@ -405,3 +405,22 @@ func (f *File) setContentTypePartVBAProjectExtensions() {
 func (f *File) WorkSheetReader(sheet string) (ws *xlsxWorksheet, err error) {
 	return f.workSheetReader(sheet)
 }
+
+func (f *File) GetDataValidation(sheet string) ([]*DataValidation, error) {
+	ws, err := f.workSheetReader(sheet)
+	if err != nil {
+		return nil, err
+	}
+	if ws.DataValidations == nil {
+		return nil, nil
+	}
+	return ws.DataValidations.DataValidation, nil
+}
+
+func (f *File) GetConditionalFormat(sheet string) ([]*xlsxConditionalFormatting, error) {
+	ws, err := f.workSheetReader(sheet)
+	if err != nil {
+		return nil, err
+	}
+	return ws.ConditionalFormatting, nil
+}
