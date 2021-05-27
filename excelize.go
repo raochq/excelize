@@ -417,10 +417,35 @@ func (f *File) GetDataValidation(sheet string) ([]*DataValidation, error) {
 	return ws.DataValidations.DataValidation, nil
 }
 
-func (f *File) GetConditionalFormat(sheet string) ([]*xlsxConditionalFormatting, error) {
+func (f *File) GetConditionalFormat(sheet string) ([]*XlsxConditionalFormatting, error) {
 	ws, err := f.workSheetReader(sheet)
 	if err != nil {
 		return nil, err
 	}
-	return ws.ConditionalFormatting, nil
+	var ret []*XlsxConditionalFormatting
+	for _, cond := range ws.ConditionalFormatting {
+		dxfs := make([]*xlsxDxf, len(cond.CfRule))
+		for i, rule := range cond.CfRule {
+			dxfs[i] = f.Styles.Dxfs.Dxfs[*rule.DxfID]
+		}
+		ret = append(ret, &XlsxConditionalFormatting{
+			Cond: cond,
+			Dxfs: dxfs,
+		})
+	}
+	return ret, nil
+}
+
+type XlsxConditionalFormatting struct {
+	Cond *xlsxConditionalFormatting
+	Dxfs []*xlsxDxf
+}
+
+func (f *File) SetXlsxConditionalFormat(sheet string, cond *XlsxConditionalFormatting) error {
+	ws, err := f.workSheetReader(sheet)
+	if err != nil {
+		return err
+	}
+	ws.ConditionalFormatting = append(ws.ConditionalFormatting, cond.Cond)
+	return nil
 }
